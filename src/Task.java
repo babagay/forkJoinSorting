@@ -9,6 +9,9 @@ import java.util.concurrent.RecursiveTask;
  * Если есть доступные файлы в pieces, открыть доступный файл и отсортировать, после чего, удалить.
  *      Отсортированный файл поместить в ./sorted_pieces
  *          Либо перезаписать данный файл?
+ *
+ *          https://javabeat.net/merge-sort-implemented-using-fork-join/
+ *          https://hackernoon.com/parallel-merge-sort-in-java-e3213ae9fa2c
  */
 public class Task extends RecursiveTask<int[]>
 {
@@ -32,7 +35,8 @@ public class Task extends RecursiveTask<int[]>
 
         /**
          * Делим массив на кусочки, пока не достигнем размера в 1 элемент.
-         * Также, можно ограничить размер неким числом (скажем, в 5 элементов или )
+         * Также, можно ограничить размер неким числом (скажем, в 5 элементов или 8192)
+         * При достижении порога
          */
         if (arrayToDivide.length > 1){
 
