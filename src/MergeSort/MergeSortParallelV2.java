@@ -48,6 +48,9 @@ public class MergeSortParallelV2 {
     private final static int THRESHOLD = 10_000; // used in ForkJoin to figure out when should we switch to sequental calculations
     private final static boolean USE_THRESHOLD = false;
 
+    private static long sequentialTime;
+    private static long parallelTime;
+
     private long[] sortedArray;
 
     public MergeSortParallelV2(long[] sortedArray) {
@@ -65,8 +68,8 @@ public class MergeSortParallelV2 {
         long startTime = System.currentTimeMillis();
         long[] sequentialResult = mss.doSorting();
         long endTime = System.currentTimeMillis();
-        long executionTime = endTime - startTime;
-        System.out.println("Execution time (Sequential): " + executionTime / 1000.0 + "s");
+        sequentialTime = endTime - startTime;
+        System.out.println("Execution time (Sequential): " + sequentialTime / 1000.0 + "s");
 
         if (testArray.length <= 1000)
             System.out.println("Before sort: " + ArrayUtil.arrayToString(testArray));
@@ -81,10 +84,14 @@ public class MergeSortParallelV2 {
         if (testArray.length <= 1000)
             System.out.println("After sort: " + ArrayUtil.arrayToString(sorter.sortedArray));
 
-        executionTime = endTime - startTime;
-        System.out.println("Execution time (Parallel): " + executionTime / 1000.0 + "s");
+        parallelTime = endTime - startTime;
+        System.out.println("Execution time (Parallel): " + parallelTime / 1000.0 + "s");
 
         System.out.println("Seq sort result equals parallel sort result: " + Arrays.equals(sorter.sortedArray, sequentialResult));
+
+        float speedup = (float) sequentialTime / parallelTime;
+        System.out.format("Speedup: %.2f \n", speedup);
+        System.out.format("Efficiency: %.2f%%\n", (float) 100 * speedup / Runtime.getRuntime().availableProcessors());
     }
 
     void sort() {
