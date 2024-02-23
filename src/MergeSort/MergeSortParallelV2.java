@@ -33,8 +33,20 @@ import java.util.concurrent.RecursiveAction;
  * данный код работает корректно.
  * Однако это не является безопасным подходом для изменения общего состояния массива
  * в многопоточной среде.
+ *
+ * [Results]
+ * 		Array size: 100M. Sequential sort: 36s. Parallel sort: 25s. Threshold: no
+ * 		Array size: 100M. Sequential sort: 40s. Parallel sort: 27s. Threshold: yes (1K)
+ * 		Array size: 100M. Sequential sort: 38s. Parallel sort: 22s. Threshold: yes (10K)
+ * 		Array size: 100M. Sequential sort: 35s. Parallel sort: 22s. Threshold: yes (100K)
+ * 		Array size: 100M. Sequential sort: 48s. Parallel sort: 25s. Threshold: yes (.1K). Profiler: enabled
+ * 		Array size: 100M. Sequential sort: 48s. Parallel sort: 25s. Threshold: yes (10K). Profiler: enabled
+ * 		Array size: 100M. Sequential sort: 52s. Parallel sort: 30s. Threshold: no. Profiler: enabled
  */
 public class MergeSortParallelV2 {
+
+    private final static int THRESHOLD = 10_000; // used in ForkJoin to figure out when should we switch to sequental calculations
+    private final static boolean USE_THRESHOLD = false;
 
     private long[] sortedArray;
 
@@ -48,19 +60,31 @@ public class MergeSortParallelV2 {
         long[] testArray = ArrayUtil.getArrayFromFile(arrayFile);
         System.out.println("Array get from " + arrayFile + ". Size: " + testArray.length);
 
+        System.out.println("Start sequential sort........");
+        MergeSortSequential mss = new MergeSortSequential(Arrays.copyOf(testArray, testArray.length));
+        long startTime = System.currentTimeMillis();
+        long[] sequentialResult = mss.doSorting();
+        long endTime = System.currentTimeMillis();
+        long executionTime = endTime - startTime;
+        System.out.println("Execution time (Sequential): " + executionTime / 1000.0 + "s");
+
         if (testArray.length <= 1000)
             System.out.println("Before sort: " + ArrayUtil.arrayToString(testArray));
 
+        System.out.println("Start Parallel sort.......");
+        if (USE_THRESHOLD) System.out.println("Threshold: yes (" + THRESHOLD + ")"); else System.out.println("Threshold: no");
         MergeSortParallelV2 sorter = new MergeSortParallelV2(Arrays.copyOf(testArray, testArray.length));
-        long startTime = System.currentTimeMillis();
+        startTime = System.currentTimeMillis();
         sorter.sort();
-        long endTime = System.currentTimeMillis();
+        endTime = System.currentTimeMillis();
 
         if (testArray.length <= 1000)
             System.out.println("After sort: " + ArrayUtil.arrayToString(sorter.sortedArray));
 
-        long executionTime = endTime - startTime;
-        System.out.println("Execution time: " + executionTime / 1000.0 + "s");
+        executionTime = endTime - startTime;
+        System.out.println("Execution time (Parallel): " + executionTime / 1000.0 + "s");
+
+        System.out.println("Seq sort result equals parallel sort result: " + Arrays.equals(sorter.sortedArray, sequentialResult));
     }
 
     void sort() {
@@ -83,6 +107,10 @@ public class MergeSortParallelV2 {
 
         @Override
         protected void compute() {
+            if (right > left && (right - left) < THRESHOLD && USE_THRESHOLD){
+                // [!] this section can be commented for experiment
+                mergeSortSeq(left, right);
+            } else
             if (left < right) {
                 int mid = (left + right) / 2;
                 Worker leftWorker = new Worker(left, mid);
@@ -90,6 +118,16 @@ public class MergeSortParallelV2 {
                 invokeAll(leftWorker, rightWorker); // there is fork under the hood
                 merge(left, mid, right);
             }
+        }
+
+        void mergeSortSeq(int left, int right) {
+            if (left >= right) return; // base case
+
+            int mid = (left + right) / 2;
+
+            mergeSortSeq(left, mid);
+            mergeSortSeq(mid + 1,right);
+            merge(left, mid, right);
         }
 
         private void merge(int leftBorder, int middleThreshold, int rightBorder) {

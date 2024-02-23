@@ -25,6 +25,15 @@ public class MergeSortSequential {
         // System.out.println("Sorted: " + ArrayUtil.arrayToString(testArray));
     }
 
+    public MergeSortSequential(long[] sortedArray) {
+        testArray = sortedArray;
+    }
+
+    public long[] doSorting(){
+        mergeSort(testArray);
+        return testArray;
+    }
+
     public static void mergeSort(long[] arr) {
         if (arr.length <= 1) return; // base case
 
